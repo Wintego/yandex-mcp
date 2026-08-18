@@ -6,13 +6,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
 
-MCP (Model Context Protocol) server for **Yandex Direct**, **Yandex Metrika**, **Yandex Wordstat**, and **Yandex Webmaster** APIs. Provides **132 tools** for managing advertising campaigns, analytics, keyword research, organic search, and reporting through any MCP-compatible client.
+MCP (Model Context Protocol) server for **Yandex Direct**, **Yandex Metrika**, **Yandex Wordstat**, and **Yandex Webmaster** APIs. Provides **135 tools** for managing advertising campaigns, analytics, keyword research, organic search, and reporting through any MCP-compatible client.
 
 > Manage Yandex advertising and analytics through AI
 
 ## Features
 
-### Yandex Direct API v5 (80 tools)
+### Yandex Direct API v5 (83 tools)
 - **Campaigns** — create, update, pause, resume, archive, delete
 - **Ad Groups** — create, update with targeting settings
 - **Ads** — text, image, dynamic, shopping ads with moderation
@@ -113,9 +113,9 @@ Add to your MCP client settings:
 | `YANDEX_WORDSTAT_API_KEY` | For Wordstat | Yandex Cloud service-account API key (Search API v2); the old OAuth Wordstat API is decommissioned |
 | `YANDEX_CLOUD_FOLDER_ID` | No | Yandex Cloud folder ID for Search API v2 requests (optional) |
 
-## Tools (132)
+## Tools (135)
 
-### Yandex Direct (80 tools)
+### Yandex Direct (83 tools)
 
 #### Campaigns (8)
 
@@ -138,7 +138,7 @@ Add to your MCP client settings:
 | `direct_create_adgroup` | Create a new ad group in a campaign |
 | `direct_update_adgroup` | Update ad group settings and targeting |
 
-#### Ads (12)
+#### Ads (14)
 
 | Tool | Description |
 |------|-------------|
@@ -147,7 +147,9 @@ Add to your MCP client settings:
 | `direct_create_image_ad` | Create an image ad (banner) |
 | `direct_create_dynamic_ad` | Create a dynamic text ad from feed data |
 | `direct_create_shopping_ad` | Create a shopping ad (unified campaign format) |
+| `direct_create_responsive_ad` | Create a combinatorial ad with up to 7 titles and 3 texts |
 | `direct_update_ad` | Update ad content (triggers re-moderation) |
+| `direct_update_responsive_ad` | Update a combinatorial ad, appending or replacing titles and texts |
 | `direct_moderate_ads` | Submit ads for moderation |
 | `direct_suspend_ads` | Pause ads |
 | `direct_resume_ads` | Resume paused ads |
@@ -155,13 +157,14 @@ Add to your MCP client settings:
 | `direct_unarchive_ads` | Restore archived ads |
 | `direct_delete_ads` | Delete ads permanently |
 
-#### Keywords (6)
+#### Keywords (7)
 
 | Tool | Description |
 |------|-------------|
 | `direct_get_keywords` | Get keywords with bids and status |
 | `direct_add_keywords` | Add keywords to an ad group |
 | `direct_set_keyword_bids` | Set search and network bids |
+| `direct_update_autotargeting` | Choose which query categories autotargeting may serve on |
 | `direct_suspend_keywords` | Pause keywords |
 | `direct_resume_keywords` | Resume paused keywords |
 | `direct_delete_keywords` | Delete keywords permanently |
@@ -473,7 +476,7 @@ yandex_mcp/
 │   ├── wordstat.py
 │   └── webmaster.py
 └── tools/               # MCP tool definitions
-    ├── direct/          # 80 Yandex Direct tools
+    ├── direct/          # 83 Yandex Direct tools
     │   ├── _helpers.py  # Shared manage-operation factory
     │   ├── campaigns.py
     │   ├── adgroups.py

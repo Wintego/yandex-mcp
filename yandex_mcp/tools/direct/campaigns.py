@@ -55,7 +55,14 @@ def register(mcp: FastMCP) -> None:
                     "StartDate", "EndDate", "DailyBudget", "Statistics",
                     "NegativeKeywords"
                 ],
-                "TextCampaignFieldNames": ["BiddingStrategy", "Settings"],
+                "TextCampaignFieldNames": [
+                    "BiddingStrategy", "Settings", "CounterIds", "PriorityGoals",
+                    "AttributionModel", "NegativeKeywordSharedSetIds",
+                ],
+                "UnifiedCampaignFieldNames": [
+                    "BiddingStrategy", "Settings", "CounterIds", "PriorityGoals",
+                    "AttributionModel", "NegativeKeywordSharedSetIds", "TrackingParams",
+                ],
                 "Page": {
                     "Limit": params.limit,
                     "Offset": params.offset
@@ -63,6 +70,14 @@ def register(mcp: FastMCP) -> None:
             }
 
             result = await api_client.direct_request("campaigns", "get", request_params)
+
+            if "error" in result:
+                err = result["error"]
+                return (
+                    f"API Error: {err.get('error_code')}: {err.get('error_string')} "
+                    f"| {err.get('error_detail', '')}"
+                )
+
             campaigns = result.get("result", {}).get("Campaigns", [])
 
             if params.response_format == ResponseFormat.JSON:

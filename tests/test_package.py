@@ -17,23 +17,26 @@ EXPECTED_DIRECT_TOOLS = [
     "direct_get_adgroups",
     "direct_create_adgroup",
     "direct_update_adgroup",
-    # Ads (12)
+    # Ads (14)
     "direct_get_ads",
     "direct_create_text_ad",
     "direct_create_image_ad",
     "direct_create_dynamic_ad",
     "direct_create_shopping_ad",
+    "direct_create_responsive_ad",
     "direct_update_ad",
+    "direct_update_responsive_ad",
     "direct_moderate_ads",
     "direct_suspend_ads",
     "direct_resume_ads",
     "direct_archive_ads",
     "direct_unarchive_ads",
     "direct_delete_ads",
-    # Keywords (6)
+    # Keywords (7)
     "direct_get_keywords",
     "direct_add_keywords",
     "direct_set_keyword_bids",
+    "direct_update_autotargeting",
     "direct_suspend_keywords",
     "direct_resume_keywords",
     "direct_delete_keywords",

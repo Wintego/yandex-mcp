@@ -11,6 +11,8 @@ from ...models.direct import (
     CreateImageAdInput,
     CreateDynamicTextAdInput,
     CreateShoppingAdInput,
+    CreateResponsiveAdInput,
+    UpdateResponsiveAdInput,
     UpdateTextAdInput,
     ManageAdInput,
 )
@@ -61,6 +63,13 @@ def register(mcp: FastMCP) -> None:
                     "Offset": params.offset
                 }
             }
+
+            if params.include_responsive:
+                request_params["ResponsiveAdFieldNames"] = [
+                    "Titles", "Texts", "Href", "DisplayDomain", "DisplayUrlPath",
+                    "SitelinkSetId", "AdImages", "AdExtensions", "VideoExtensions",
+                    "BusinessId",
+                ]
 
             result = await api_client.direct_request("ads", "get", request_params)
 
@@ -373,6 +382,240 @@ def register(mcp: FastMCP) -> None:
                 return f"Update completed with issues:\n" + "\n".join(f"- {e}" for e in errors)
 
             return f"Ad {params.ad_id} updated successfully. Note: Submit for moderation using direct_moderate_ads."
+
+        except Exception as e:
+            return handle_api_error(e)
+
+    @mcp.tool(
+        name="direct_create_responsive_ad",
+        annotations={
+            "title": "Create Yandex Direct Combinatorial Ad",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False
+        }
+    )
+    async def direct_create_responsive_ad(params: CreateResponsiveAdInput) -> str:
+        """Create a combinatorial (responsive) ad in an ad group.
+
+        Combinatorial ads replaced plain text ads in unified performance
+        campaigns: you supply up to 7 titles and up to 3 texts and Direct picks
+        the best combination per impression. Use this instead of
+        direct_create_text_ad for new ads.
+        """
+        try:
+            responsive_ad = {
+                "Titles": params.titles,
+                "Texts": params.texts,
+            }
+
+            if params.href:
+                responsive_ad["Href"] = params.href
+            if params.display_url_path:
+                responsive_ad["DisplayUrlPath"] = params.display_url_path
+            if params.ad_image_hashes:
+                responsive_ad["AdImageHashes"] = params.ad_image_hashes
+            if params.sitelink_set_id:
+                responsive_ad["SitelinkSetId"] = params.sitelink_set_id
+            if params.ad_extension_ids:
+                responsive_ad["AdExtensionIds"] = params.ad_extension_ids
+            if params.video_extension_ids:
+                responsive_ad["VideoExtensionIds"] = params.video_extension_ids
+            if params.business_id:
+                responsive_ad["BusinessId"] = params.business_id
+
+            if not params.href and not params.business_id:
+                return "Provide href or business_id: a combinatorial ad needs a destination."
+
+            request_params = {
+                "Ads": [{
+                    "AdGroupId": params.adgroup_id,
+                    "ResponsiveAd": responsive_ad,
+                }]
+            }
+
+            result = await api_client.direct_request("ads", "add", request_params)
+
+            if "error" in result:
+                err = result["error"]
+                return (
+                    f"API Error: {err.get('error_code')}: {err.get('error_string')} "
+                    f"| {err.get('error_detail', '')}"
+                )
+
+            add_results = result.get("result", {}).get("AddResults", [])
+
+            if add_results and add_results[0].get("Id"):
+                return (
+                    f"Combinatorial ad created successfully. ID: {add_results[0]['Id']}\n"
+                    f"{len(params.titles)} title(s), {len(params.texts)} text(s). "
+                    "The ad goes to moderation automatically."
+                )
+
+            errors = []
+            for r in add_results:
+                for err in r.get("Errors", []):
+                    errors.append(
+                        err.get("Message", "Unknown error")
+                        + (f" - {err['Details']}" if err.get("Details") else "")
+                    )
+
+            return "Failed to create ad:\n" + "\n".join(f"- {e}" for e in errors)
+
+        except Exception as e:
+            return handle_api_error(e)
+
+    @mcp.tool(
+        name="direct_update_responsive_ad",
+        annotations={
+            "title": "Update Yandex Direct Combinatorial Ad",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False
+        }
+    )
+    async def direct_update_responsive_ad(params: UpdateResponsiveAdInput) -> str:
+        """Update a combinatorial (responsive) ad.
+
+        With titles_mode/texts_mode set to 'append' (the default) the supplied
+        titles and texts are added to the ones already on the ad, which is how
+        you widen a one-title ad without retyping it. Use 'replace' to overwrite.
+        Editing an ad sends it back to moderation.
+        """
+        try:
+            needs_current = (
+                (params.titles and params.titles_mode == "append")
+                or (params.texts and params.texts_mode == "append")
+            )
+
+            current_titles: list = []
+            current_texts: list = []
+
+            if needs_current:
+                current = await api_client.direct_request("ads", "get", {
+                    "SelectionCriteria": {"Ids": [params.ad_id]},
+                    "FieldNames": ["Id", "Type"],
+                    "ResponsiveAdFieldNames": ["Titles", "Texts"],
+                })
+
+                if "error" in current:
+                    err = current["error"]
+                    return (
+                        f"API Error while reading the ad: {err.get('error_code')}: "
+                        f"{err.get('error_string')} | {err.get('error_detail', '')}"
+                    )
+
+                ads = current.get("result", {}).get("Ads", [])
+                if not ads:
+                    return f"Ad {params.ad_id} not found."
+
+                responsive = ads[0].get("ResponsiveAd") or {}
+                if not responsive:
+                    return (
+                        f"Ad {params.ad_id} is not a combinatorial ad "
+                        f"(type {ads[0].get('Type', 'unknown')}). Use direct_update_ad instead."
+                    )
+
+                current_titles = [
+                    t.get("Title") for t in responsive.get("Titles", []) if t.get("Title")
+                ]
+                current_texts = [
+                    t.get("Text") for t in responsive.get("Texts", []) if t.get("Text")
+                ]
+
+            responsive_update = {}
+
+            if params.titles:
+                titles = (
+                    current_titles + [t for t in params.titles if t not in current_titles]
+                    if params.titles_mode == "append"
+                    else list(params.titles)
+                )
+                if len(titles) > 7:
+                    return (
+                        f"Too many titles: {len(titles)} after merging, the limit is 7. "
+                        "Use titles_mode='replace' or send fewer titles."
+                    )
+                responsive_update["Titles"] = titles
+
+            if params.texts:
+                texts = (
+                    current_texts + [t for t in params.texts if t not in current_texts]
+                    if params.texts_mode == "append"
+                    else list(params.texts)
+                )
+                if len(texts) > 3:
+                    return (
+                        f"Too many texts: {len(texts)} after merging, the limit is 3. "
+                        "Use texts_mode='replace' or send fewer texts."
+                    )
+                responsive_update["Texts"] = texts
+
+            if params.href:
+                responsive_update["Href"] = params.href
+            if params.display_url_path:
+                responsive_update["DisplayUrlPath"] = params.display_url_path
+            if params.ad_image_hashes:
+                responsive_update["AdImageHashes"] = {"Items": params.ad_image_hashes}
+            if params.sitelink_set_id:
+                responsive_update["SitelinkSetId"] = params.sitelink_set_id
+            if params.video_extension_ids:
+                responsive_update["VideoExtensionIds"] = {"Items": params.video_extension_ids}
+            if params.business_id:
+                responsive_update["BusinessId"] = params.business_id
+            if params.callout_ad_extension_ids:
+                responsive_update["CalloutSetting"] = {
+                    "AdExtensions": [
+                        {"AdExtensionId": ext_id, "Operation": params.callout_operation}
+                        for ext_id in params.callout_ad_extension_ids
+                    ]
+                }
+
+            if not responsive_update:
+                return "No fields specified for update."
+
+            result = await api_client.direct_request("ads", "update", {
+                "Ads": [{"Id": params.ad_id, "ResponsiveAd": responsive_update}]
+            })
+
+            if "error" in result:
+                err = result["error"]
+                return (
+                    f"API Error: {err.get('error_code')}: {err.get('error_string')} "
+                    f"| {err.get('error_detail', '')}"
+                )
+
+            update_results = result.get("result", {}).get("UpdateResults", [])
+
+            errors = []
+            warnings = []
+            for r in update_results:
+                for err in r.get("Errors", []):
+                    errors.append(
+                        err.get("Message", "Unknown error")
+                        + (f" - {err['Details']}" if err.get("Details") else "")
+                    )
+                for warn in r.get("Warnings", []):
+                    warnings.append(warn.get("Message", "Unknown warning"))
+
+            if errors:
+                return "Update failed:\n" + "\n".join(f"- {e}" for e in errors)
+
+            summary = []
+            if "Titles" in responsive_update:
+                summary.append(f"{len(responsive_update['Titles'])} title(s)")
+            if "Texts" in responsive_update:
+                summary.append(f"{len(responsive_update['Texts'])} text(s)")
+
+            response = f"Ad {params.ad_id} updated"
+            if summary:
+                response += f": now has {', '.join(summary)}"
+            response += ". It has been sent back to moderation."
+            if warnings:
+                response += "\n\nWarnings:\n" + "\n".join(f"- {w}" for w in warnings)
+            return response
 
         except Exception as e:
             return handle_api_error(e)

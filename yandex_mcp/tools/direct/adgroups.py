@@ -42,7 +42,10 @@ def register(mcp: FastMCP) -> None:
 
             request_params = {
                 "SelectionCriteria": selection_criteria,
-                "FieldNames": ["Id", "Name", "CampaignId", "RegionIds", "Type", "Status", "ServingStatus"],
+                "FieldNames": [
+                    "Id", "Name", "CampaignId", "RegionIds", "Type", "Status",
+                    "ServingStatus", "NegativeKeywords", "TrackingParams",
+                ],
                 "Page": {
                     "Limit": params.limit,
                     "Offset": params.offset
@@ -50,6 +53,14 @@ def register(mcp: FastMCP) -> None:
             }
 
             result = await api_client.direct_request("adgroups", "get", request_params)
+
+            if "error" in result:
+                err = result["error"]
+                return (
+                    f"API Error: {err.get('error_code')}: {err.get('error_string')} "
+                    f"| {err.get('error_detail', '')}"
+                )
+
             groups = result.get("result", {}).get("AdGroups", [])
 
             if params.response_format == ResponseFormat.JSON:

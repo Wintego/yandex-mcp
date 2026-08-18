@@ -435,6 +435,13 @@ class GetAdsInput(BaseModel):
         default=None,
         description="Filter by ad statuses"
     )
+    include_responsive: bool = Field(
+        default=True,
+        description=(
+            "Also return combinatorial ad fields: the full title and text sets, "
+            "images, sitelinks and callouts"
+        )
+    )
     limit: int = Field(
         default=100,
         ge=1,
@@ -449,6 +456,134 @@ class GetAdsInput(BaseModel):
     response_format: ResponseFormat = Field(
         default=ResponseFormat.MARKDOWN,
         description="Output format: 'markdown' or 'json'"
+    )
+
+
+class CreateResponsiveAdInput(BaseModel):
+    """Input for creating a combinatorial (responsive) ad.
+
+    Combinatorial ads replaced plain text ads in unified performance campaigns:
+    Direct combines up to 7 titles with up to 3 texts and picks the best
+    performing variant per impression.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    adgroup_id: int = Field(
+        ...,
+        description="Ad group ID to create the ad in"
+    )
+    titles: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=7,
+        description="1 to 7 titles, each up to 56 characters"
+    )
+    texts: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=3,
+        description="1 to 3 ad texts, each up to 81 characters"
+    )
+    href: Optional[str] = Field(
+        default=None,
+        description="Landing page URL. Required unless business_id is set."
+    )
+    display_url_path: Optional[str] = Field(
+        default=None,
+        max_length=20,
+        description="Display URL path shown after the domain"
+    )
+    ad_image_hashes: Optional[List[str]] = Field(
+        default=None,
+        max_length=5,
+        description="Up to 5 image hashes from direct_upload_image"
+    )
+    sitelink_set_id: Optional[int] = Field(
+        default=None,
+        description="Sitelink set ID from direct_add_sitelinks"
+    )
+    ad_extension_ids: Optional[List[int]] = Field(
+        default=None,
+        description="Callout extension IDs from direct_add_callouts"
+    )
+    video_extension_ids: Optional[List[int]] = Field(
+        default=None,
+        max_length=6,
+        description="Video extension IDs"
+    )
+    business_id: Optional[int] = Field(
+        default=None,
+        description="Yandex organisation profile ID"
+    )
+
+
+class UpdateResponsiveAdInput(BaseModel):
+    """Input for updating a combinatorial (responsive) ad.
+
+    Use titles_mode / texts_mode to decide whether the supplied lists replace
+    the current ones or are appended to them.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    ad_id: int = Field(
+        ...,
+        description="Ad ID to update"
+    )
+    titles: Optional[List[str]] = Field(
+        default=None,
+        max_length=7,
+        description="Titles, each up to 56 characters"
+    )
+    texts: Optional[List[str]] = Field(
+        default=None,
+        max_length=3,
+        description="Ad texts, each up to 81 characters"
+    )
+    titles_mode: str = Field(
+        default="append",
+        pattern="^(append|replace)$",
+        description="'append' keeps existing titles and adds new ones, 'replace' overwrites"
+    )
+    texts_mode: str = Field(
+        default="append",
+        pattern="^(append|replace)$",
+        description="'append' keeps existing texts and adds new ones, 'replace' overwrites"
+    )
+    href: Optional[str] = Field(
+        default=None,
+        description="New landing page URL"
+    )
+    display_url_path: Optional[str] = Field(
+        default=None,
+        max_length=20,
+        description="Display URL path shown after the domain"
+    )
+    ad_image_hashes: Optional[List[str]] = Field(
+        default=None,
+        max_length=5,
+        description="Replace the image set with these hashes"
+    )
+    sitelink_set_id: Optional[int] = Field(
+        default=None,
+        description="Sitelink set ID to attach"
+    )
+    callout_ad_extension_ids: Optional[List[int]] = Field(
+        default=None,
+        description="Callout extension IDs to apply with callout_operation"
+    )
+    callout_operation: str = Field(
+        default="SET",
+        pattern="^(ADD|REMOVE|SET)$",
+        description="How to apply callout_ad_extension_ids: ADD, REMOVE or SET"
+    )
+    video_extension_ids: Optional[List[int]] = Field(
+        default=None,
+        max_length=6,
+        description="Video extension IDs to attach"
+    )
+    business_id: Optional[int] = Field(
+        default=None,
+        description="Yandex organisation profile ID"
     )
 
 
@@ -646,6 +781,13 @@ class GetKeywordsInput(BaseModel):
         default=None,
         description="Filter by specific keyword IDs"
     )
+    include_autotargeting_settings: bool = Field(
+        default=True,
+        description=(
+            "Also return autotargeting categories and brand options for "
+            "---autotargeting criteria"
+        )
+    )
     limit: int = Field(
         default=100,
         ge=1,
@@ -684,16 +826,134 @@ class AddKeywordsInput(BaseModel):
     )
 
 
+class KeywordBidItem(BaseModel):
+    """A single bid assignment for KeywordBids.set.
+
+    Target exactly one of keyword_id / adgroup_id / campaign_id. The latter two
+    apply one bid to every keyword and autotargeting in that group or campaign.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    keyword_id: Optional[int] = Field(
+        default=None,
+        description="Keyword or autotargeting ID to set the bid on"
+    )
+    adgroup_id: Optional[int] = Field(
+        default=None,
+        description="Set one bid for every keyword in this ad group"
+    )
+    campaign_id: Optional[int] = Field(
+        default=None,
+        description="Set one bid for every keyword in this campaign"
+    )
+    bid: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Search bid in currency units (alias of search_bid)"
+    )
+    search_bid: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Search bid in currency units, e.g. 220 for 220 RUB"
+    )
+    network_bid: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Ad-network bid in currency units"
+    )
+    autotargeting_search_bid_is_auto: Optional[bool] = Field(
+        default=None,
+        description="Enable automatic search bid for an autotargeting criterion"
+    )
+    strategy_priority: Optional[str] = Field(
+        default=None,
+        pattern="^(LOW|NORMAL|HIGH)$",
+        description="Keyword priority: LOW, NORMAL or HIGH"
+    )
+
+
 class SetKeywordBidsInput(BaseModel):
     """Input for setting keyword bids."""
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
-    keyword_bids: List[Dict[str, Any]] = Field(
+    keyword_bids: List[KeywordBidItem] = Field(
         ...,
         min_length=1,
         max_length=10000,
-        description="List of keyword bid settings: [{'keyword_id': 123, 'search_bid': 1.5, 'network_bid': 0.5}]"
+        description=(
+            "Bid assignments, e.g. [{'keyword_id': 123, 'bid': 220}] or "
+            "[{'adgroup_id': 456, 'bid': 220}] to set one bid for a whole group"
+        )
     )
+
+
+class UpdateAutotargetingInput(BaseModel):
+    """Input for changing autotargeting settings of ---autotargeting criteria.
+
+    Autotargeting lives in the Keywords service: every text ad group owns one
+    ---autotargeting criterion whose ID is returned by direct_get_keywords.
+    Only the flags you pass are changed; the rest keep their current value.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    keyword_ids: List[int] = Field(
+        ...,
+        min_length=1,
+        max_length=1000,
+        description="IDs of the ---autotargeting criteria to update"
+    )
+    exact: Optional[bool] = Field(
+        default=None,
+        description="Target queries: the ad answers the query precisely"
+    )
+    narrow: Optional[bool] = Field(
+        default=None,
+        description="Narrow queries: the ad is broader than the query"
+    )
+    alternative: Optional[bool] = Field(
+        default=None,
+        description="Alternative queries: user looks for a replaceable product"
+    )
+    accessory: Optional[bool] = Field(
+        default=None,
+        description="Accessory queries: products bought alongside yours"
+    )
+    broader: Optional[bool] = Field(
+        default=None,
+        description="Broad queries: general interest in the product area"
+    )
+    without_brands: Optional[bool] = Field(
+        default=None,
+        description="Serve on queries with no brand mention"
+    )
+    with_advertiser_brand: Optional[bool] = Field(
+        default=None,
+        description="Serve on queries mentioning your own brand"
+    )
+    with_competitors_brand: Optional[bool] = Field(
+        default=None,
+        description="Serve on queries mentioning competitor brands"
+    )
+
+    def categories_payload(self) -> Dict[str, str]:
+        """Build the AutotargetingSettings.Categories part of the request."""
+        mapping = {
+            "Exact": self.exact,
+            "Narrow": self.narrow,
+            "Alternative": self.alternative,
+            "Accessory": self.accessory,
+            "Broader": self.broader,
+        }
+        return {k: ("YES" if v else "NO") for k, v in mapping.items() if v is not None}
+
+    def brand_options_payload(self) -> Dict[str, str]:
+        """Build the AutotargetingSettings.BrandOptions part of the request."""
+        mapping = {
+            "WithoutBrands": self.without_brands,
+            "WithAdvertiserBrand": self.with_advertiser_brand,
+            "WithCompetitorsBrand": self.with_competitors_brand,
+        }
+        return {k: ("YES" if v else "NO") for k, v in mapping.items() if v is not None}
 
 
 class ManageKeywordInput(BaseModel):

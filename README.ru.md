@@ -6,13 +6,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
 
-MCP (Model Context Protocol) сервер для **Yandex Direct**, **Yandex Metrika**, **Yandex Wordstat** и **Yandex Webmaster** API. Предоставляет **132 инструмента** для управления рекламными кампаниями, аналитикой, исследованием ключевых слов, органическим поиском и отчётностью через любой MCP-совместимый клиент.
+MCP (Model Context Protocol) сервер для **Yandex Direct**, **Yandex Metrika**, **Yandex Wordstat** и **Yandex Webmaster** API. Предоставляет **135 инструментов** для управления рекламными кампаниями, аналитикой, исследованием ключевых слов, органическим поиском и отчётностью через любой MCP-совместимый клиент.
 
 > Управляй рекламой и аналитикой Яндекса через AI
 
 ## Возможности
 
-### Yandex Direct API v5 (80 инструментов)
+### Yandex Direct API v5 (83 инструмента)
 - **Кампании** — создание, обновление, приостановка, возобновление, архивирование, удаление
 - **Группы объявлений** — создание, обновление с настройками таргетинга
 - **Объявления** — текстовые, графические, динамические, товарные с модерацией
@@ -113,9 +113,9 @@ YANDEX_TOKEN=ваш_oauth_токен
 | `YANDEX_WORDSTAT_API_KEY` | Для Wordstat | API-ключ сервисного аккаунта Yandex Cloud (Search API v2); старый OAuth Wordstat API отключён |
 | `YANDEX_CLOUD_FOLDER_ID` | Нет | ID каталога Yandex Cloud для запросов Search API v2 (опционально) |
 
-## Инструменты (132)
+## Инструменты (135)
 
-### Yandex Direct (80 инструментов)
+### Yandex Direct (83 инструмента)
 
 #### Кампании (8)
 
@@ -138,7 +138,7 @@ YANDEX_TOKEN=ваш_oauth_токен
 | `direct_create_adgroup` | Создать группу объявлений |
 | `direct_update_adgroup` | Обновить настройки группы |
 
-#### Объявления (12)
+#### Объявления (14)
 
 | Инструмент | Описание |
 |------------|----------|
@@ -147,7 +147,9 @@ YANDEX_TOKEN=ваш_oauth_токен
 | `direct_create_image_ad` | Создать графическое объявление (баннер) |
 | `direct_create_dynamic_ad` | Создать динамическое объявление из фида |
 | `direct_create_shopping_ad` | Создать товарное объявление (ЕПК) |
+| `direct_create_responsive_ad` | Создать комбинаторное объявление: до 7 заголовков и 3 текстов |
 | `direct_update_ad` | Обновить контент (требует повторной модерации) |
+| `direct_update_responsive_ad` | Обновить комбинаторное объявление: добавить или заменить заголовки и тексты |
 | `direct_moderate_ads` | Отправить на модерацию |
 | `direct_suspend_ads` | Приостановить объявления |
 | `direct_resume_ads` | Возобновить объявления |
@@ -155,13 +157,14 @@ YANDEX_TOKEN=ваш_oauth_токен
 | `direct_unarchive_ads` | Разархивировать объявления |
 | `direct_delete_ads` | Удалить объявления |
 
-#### Ключевые слова (6)
+#### Ключевые слова (7)
 
 | Инструмент | Описание |
 |------------|----------|
 | `direct_get_keywords` | Получить ключевые слова со ставками и статусом |
 | `direct_add_keywords` | Добавить ключевые слова в группу |
 | `direct_set_keyword_bids` | Установить ставки на поиске и в сетях |
+| `direct_update_autotargeting` | Выбрать категории запросов, по которым работает автотаргетинг |
 | `direct_suspend_keywords` | Приостановить ключевые слова |
 | `direct_resume_keywords` | Возобновить ключевые слова |
 | `direct_delete_keywords` | Удалить ключевые слова |
@@ -473,7 +476,7 @@ yandex_mcp/
 │   ├── wordstat.py
 │   └── webmaster.py
 └── tools/               # Определения MCP-инструментов
-    ├── direct/          # 80 инструментов Yandex Direct
+    ├── direct/          # 83 инструмента Yandex Direct
     │   ├── _helpers.py  # Фабрика для manage-операций
     │   ├── campaigns.py
     │   ├── adgroups.py
