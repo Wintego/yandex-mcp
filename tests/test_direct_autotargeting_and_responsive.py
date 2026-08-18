@@ -26,7 +26,12 @@ class RecordingClient:
         self.calls = []
 
     async def direct_request(self, service, method, params, use_v501=False, timeout=None):
-        self.calls.append({"service": service, "method": method, "params": params})
+        self.calls.append({
+            "service": service,
+            "method": method,
+            "params": params,
+            "use_v501": use_v501,
+        })
         return self.responses.pop(0)
 
 
@@ -213,6 +218,8 @@ class TestUpdateResponsiveAd:
         assert update_call["ResponsiveAd"]["Titles"] == ["Original", "Second", "Third"]
         assert "Texts" not in update_call["ResponsiveAd"]
         assert "3 title(s)" in result
+        # The read may use v5, the write must use v501.
+        assert client.calls[1]["use_v501"] is True
 
     async def test_replace_overwrites(self, tools):
         client, registry = tools([{"result": {"UpdateResults": [{"Id": 7}]}}])
@@ -223,6 +230,16 @@ class TestUpdateResponsiveAd:
 
         assert client.calls[0]["method"] == "update"
         assert client.calls[0]["params"]["Ads"][0]["ResponsiveAd"]["Titles"] == ["Only"]
+
+    async def test_writes_go_to_the_v501_endpoint(self, tools):
+        """Combinatorial ads are rejected by v5 with 'use v501'."""
+        client, registry = tools([{"result": {"UpdateResults": [{"Id": 7}]}}])
+
+        await registry["direct_update_responsive_ad"].fn(
+            UpdateResponsiveAdInput(ad_id=7, titles=["Only"], titles_mode="replace")
+        )
+
+        assert client.calls[0]["use_v501"] is True
 
     async def test_append_does_not_duplicate(self, tools):
         client, registry = tools([

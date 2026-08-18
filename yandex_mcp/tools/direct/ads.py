@@ -435,7 +435,10 @@ def register(mcp: FastMCP) -> None:
                 }]
             }
 
-            result = await api_client.direct_request("ads", "add", request_params)
+            # Combinatorial ads are only writable through the v501 endpoint.
+            result = await api_client.direct_request(
+                "ads", "add", request_params, use_v501=True
+            )
 
             if "error" in result:
                 err = result["error"]
@@ -576,9 +579,13 @@ def register(mcp: FastMCP) -> None:
             if not responsive_update:
                 return "No fields specified for update."
 
-            result = await api_client.direct_request("ads", "update", {
-                "Ads": [{"Id": params.ad_id, "ResponsiveAd": responsive_update}]
-            })
+            # Combinatorial ads are only writable through the v501 endpoint.
+            result = await api_client.direct_request(
+                "ads",
+                "update",
+                {"Ads": [{"Id": params.ad_id, "ResponsiveAd": responsive_update}]},
+                use_v501=True,
+            )
 
             if "error" in result:
                 err = result["error"]
